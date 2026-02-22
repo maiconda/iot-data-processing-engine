@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"math/rand"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -19,7 +19,11 @@ type Telemetria struct {
 }
 
 func simularRastreador(imei string) {
-	urlDestino := "http://localhost:8080/telemetria"
+	urlDestino := os.Getenv("URL_INGESTOR")
+
+	if urlDestino == "" {
+		urlDestino = "http://localhost:8080/telemetria"
+	}
 
 	for {
 		dados := Telemetria{
@@ -41,13 +45,6 @@ func simularRastreador(imei string) {
 		if erroHTTP != nil {
 			fmt.Printf("🔴 [Rastreador %s] Falha de conexão: Servidor offline!\n", imei)
 		} else {
-			corpoRespostaBytes, _ := io.ReadAll(resposta.Body)
-
-			fmt.Printf("🟢 [%s] Status: %d | Resposta do Servidor: %s\n",
-				imei,
-				resposta.StatusCode,
-				string(corpoRespostaBytes),
-			)
 			err := resposta.Body.Close()
 			if err != nil {
 				return
