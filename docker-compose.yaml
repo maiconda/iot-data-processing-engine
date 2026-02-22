@@ -1,6 +1,72 @@
 version: '3.8'
 
 services:
+  timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    container_name: iot-database
+    restart: always
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=1234
+      - POSTGRES_DB=iot-database
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    command:
+      - "postgres"
+      - "-c"
+      - "max_connections=100"
+
+      - "-c"
+      - "shared_buffers=512MB"
+      - "-c"
+      - "effective_cache_size=1536MB"
+      - "-c"
+      - "maintenance_work_mem=128MB"
+
+      - "-c"
+      - "synchronous_commit=off"
+      - "-c"
+      - "wal_buffers=16MB"
+      - "-c"
+      - "checkpoint_completion_target=0.9"
+      - "-c"
+      - "random_page_cost=1.1"
+
+  migrator:
+    build:
+      context: ./migrator
+    container_name: executor_migrations
+    environment:
+      - DATABASE_URL=postgres://admin:1234@timescaledb:5432/iot-database?sslmode=disable
+    depends_on:
+      - timescaledb
+    restart: on-failure
+
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    container_name: pgbouncer
+    restart: always
+    environment:
+      - DB_HOST=timescaledb
+      - DB_PORT=5432
+      - DB_USER=admin
+      - DB_PASSWORD=1234
+      - DB_NAME=iot-database
+
+      - POOL_MODE=session
+      - MAX_CLIENT_CONN=5000
+      - DEFAULT_POOL_SIZE=100
+
+      - IGNORE_STARTUP_PARAMETERS=extra_float_digits
+      - AUTH_TYPE=scram-sha-256
+    ports:
+      - "6432:5432"
+    depends_on:
+      timescaledb:
+        condition: service_started
+      migrator:
+        condition: service_completed_successfully
+
   nats:
     image: nats:alpine
     container_name: nats-jetstream
@@ -8,6 +74,19 @@ services:
       - "4222:4222"
       - "8222:8222"
     command: "-js -m 8222"
+
+  telemetry-worker:
+    build:
+      context: ./telemetry-worker
+    container_name: telemetry-worker
+    environment:
+      - DATABASE_URL=postgres://admin:1234@pgbouncer:5432/iot-database?sslmode=disable
+      - NATS_URL=nats://nats:4222
+    depends_on:
+      nats:
+        condition: service_started
+      migrator:
+        condition: service_completed_successfully
 
   telemetry-ingestor:
     build:
@@ -29,3 +108,5 @@ services:
       - URL_INGESTOR=http://telemetry-ingestor:8080/telemetria
     depends_on:
       - telemetry-ingestor
+volumes:
+  pgdata:

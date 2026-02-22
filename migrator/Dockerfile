@@ -2,10 +2,12 @@ FROM golang:1.24-alpine AS builder
 WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
+
 COPY . .
-RUN go build -ldflags="-s -w" -o worker main.go
+RUN go build -ldflags="-s -w" -o migrator main.go
 
 FROM alpine:latest
 WORKDIR /root/
-COPY --from=builder /app/worker .
-CMD ["./worker"]
+COPY --from=builder /app/migrator .
+
+CMD ["./migrator"]

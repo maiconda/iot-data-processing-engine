@@ -15,7 +15,7 @@ type Telemetria struct {
 	Latitude   float64 `json:"lat"`
 	Longitude  float64 `json:"lng"`
 	Velocidade int     `json:"velocidade"`
-	Ligado     bool    `json:"ligado"`
+	Date       string  `json:"date"`
 }
 
 func simularRastreador(imei string) {
@@ -31,7 +31,7 @@ func simularRastreador(imei string) {
 			Latitude:   -27.0 + (rand.Float64() * 2),
 			Longitude:  -51.0 + (rand.Float64() * 2),
 			Velocidade: rand.Intn(120),
-			Ligado:     true,
+			Date:       time.Now().Format("2006-01-02 15:04:05"),
 		}
 
 		payloadJSON, erroJSON := json.Marshal(dados)

@@ -15,6 +15,7 @@ type Telemetria struct {
 	Latitude   float64 `json:"lat"`
 	Longitude  float64 `json:"lng"`
 	Velocidade int     `json:"velocidade"`
+	Date       string  `json:"date"`
 }
 
 var nc *nats.Conn
