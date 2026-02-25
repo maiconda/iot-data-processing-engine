@@ -57,7 +57,7 @@ func simularRastreador(imei string) {
 }
 
 func main() {
-	for i := 1; i <= 5000; i++ {
+	for i := 1; i <= 20000; i++ {
 		imei := fmt.Sprintf("TRUCK-%04d", i)
 		go simularRastreador(imei)
 	}
